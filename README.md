@@ -18,10 +18,10 @@ These were picked at random and will be replaced with the desired colors.
 Eye color: #8f563b
 Skin color: #eec39a
 
-![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_1.png "Example portrait 1")
-![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_2.png "Example portrait 2")
-![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_3.png "Example portrait 3")
-![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_4.png "Example portrait 4")
+![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_0.png "Example portrait 1")
+![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_1.png "Example portrait 2")
+![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_2.png "Example portrait 3")
+![alt text](https://raw.githubusercontent.com/Flokey82/genportrait/main/portrait_3.png "Example portrait 4")
 
 ## TODO
 
