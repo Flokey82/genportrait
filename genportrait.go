@@ -22,11 +22,17 @@ var eyebrows_png []byte
 //go:embed sprites/heads_32_1x4.png
 var heads_png []byte
 
-//go:embed sprites/mouths_32_1x4.png
-var mouths_png []byte
-
 //go:embed sprites/noses_32_1x2.png
 var noses_png []byte
+
+//go:embed sprites/beards_32_1x5.png
+var beards_png []byte
+
+//go:embed sprites/hair_32_1x7.png
+var hair_png []byte
+
+//go:embed sprites/mouths_32_1x4.png
+var mouths_png []byte
 
 func LoadSprites() (*Generator, error) {
 	const tileSize = 32
@@ -48,11 +54,19 @@ func LoadSprites() (*Generator, error) {
 	if err != nil {
 		return nil, err
 	}
-	mouths, err := newSpritesheet(mouths_png, tileSize)
+	noses, err := newSpritesheet(noses_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	noses, err := newSpritesheet(noses_png, tileSize)
+	beards, err := newSpritesheet(beards_png, tileSize)
+	if err != nil {
+		return nil, err
+	}
+	hair, err := newSpritesheet(hair_png, tileSize)
+	if err != nil {
+		return nil, err
+	}
+	mouths, err := newSpritesheet(mouths_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +77,8 @@ func LoadSprites() (*Generator, error) {
 		eyebrows: eyebrows,
 		ears:     ears,
 		noses:    noses,
+		beards:   beards,
+		hair:     hair,
 		mouths:   mouths,
 	}, nil
 }
@@ -73,6 +89,8 @@ type Generator struct {
 	eyebrows *spritesheet
 	ears     *spritesheet
 	noses    *spritesheet
+	beards   *spritesheet
+	hair     *spritesheet
 	mouths   *spritesheet
 }
 
@@ -106,6 +124,27 @@ var EyeColors = []color.RGBA{
 	{255, 0, 0, 255},   // Red
 }
 
+// HairColors is a list of hair colors that can be used in the portrait generator.
+var HairColors = []color.RGBA{
+	{0, 0, 0, 255},       // Black
+	{0, 0, 255, 255},     // Blue
+	{0, 128, 0, 255},     // Green
+	{128, 0, 0, 255},     // Maroon
+	{128, 0, 128, 255},   // Purple
+	{255, 0, 0, 255},     // Red
+	{139, 69, 19, 255},   // SaddleBrown
+	{160, 82, 45, 255},   // Sienna
+	{210, 105, 30, 255},  // Chocolate
+	{205, 133, 63, 255},  // Peru
+	{244, 164, 96, 255},  // SandyBrown
+	{222, 184, 135, 255}, // BurlyWood
+	{210, 180, 140, 255}, // Tan
+	{188, 143, 143, 255}, // RosyBrown
+	{205, 92, 92, 255},   // Reddish
+	{165, 42, 42, 255},   // Brown
+	{255, 255, 0, 255},   // Yellow (Blonde)
+}
+
 // Random generates a random portrait.
 func (g *Generator) Random() image.Image {
 	// Draw head. (pick random head)
@@ -123,6 +162,12 @@ func (g *Generator) Random() image.Image {
 	// Draw nose. (pick random nose)
 	noseIdx := rand.Intn(g.noses.numTiles())
 
+	// Draw beard. (pick random beard)
+	beardIdx := rand.Intn(g.beards.numTiles())
+
+	// Draw hair. (pick random hair)
+	hairIdx := rand.Intn(g.hair.numTiles())
+
 	// Draw mouth. (pick random mouth)
 	mouthIdx := rand.Intn(g.mouths.numTiles())
 
@@ -132,13 +177,17 @@ func (g *Generator) Random() image.Image {
 	// Pick a random eye color
 	eyeColor := EyeColors[rand.Intn(len(EyeColors))]
 
-	return g.Generate(eyeColor, skinColor, headIdx, eyesIdx, eyebrowsIdx, earsIdx, noseIdx, mouthIdx)
+	// Pick a random hair color
+	hairColor := HairColors[rand.Intn(len(HairColors))]
+
+	return g.Generate(eyeColor, skinColor, hairColor, headIdx, eyesIdx, eyebrowsIdx, earsIdx, noseIdx, beardIdx, hairIdx, mouthIdx)
 }
 
 var defaultSkinColor = color.RGBA{0xee, 0xc3, 0x9a, 0xff}
 var defaultEyeColor = color.RGBA{0x8f, 0x56, 0x3b, 0xff}
+var defaultHairColor = color.RGBA{0xfb, 0xf2, 0x36, 0xff}
 
-func (g *Generator) Generate(eyeColor, skinColor color.RGBA, headIndex, eyeIndex, eyebrowIndex, earIndex, noseIndex, mouthIndex int) image.Image {
+func (g *Generator) Generate(eyeColor, skinColor, hairColor color.RGBA, headIndex, eyeIndex, eyebrowIndex, earIndex, noseIndex, beardIdx, hairIndex, mouthIndex int) image.Image {
 	portrait := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	// Draw head.
 	headImg := g.heads.TileImage(headIndex)
@@ -160,6 +209,14 @@ func (g *Generator) Generate(eyeColor, skinColor color.RGBA, headIndex, eyeIndex
 	noseImg := g.noses.TileImage(noseIndex)
 	draw.Draw(portrait, portrait.Bounds(), noseImg, image.Point{0, 0}, draw.Over)
 
+	// Draw beard.
+	beardImg := g.beards.TileImage(beardIdx)
+	draw.Draw(portrait, portrait.Bounds(), beardImg, image.Point{0, 0}, draw.Over)
+
+	// Draw hair.
+	hairImg := g.hair.TileImage(hairIndex)
+	draw.Draw(portrait, portrait.Bounds(), hairImg, image.Point{0, 0}, draw.Over)
+
 	// Draw mouth.
 	mouthImg := g.mouths.TileImage(mouthIndex)
 	draw.Draw(portrait, portrait.Bounds(), mouthImg, image.Point{0, 0}, draw.Over)
@@ -167,6 +224,7 @@ func (g *Generator) Generate(eyeColor, skinColor color.RGBA, headIndex, eyeIndex
 	// Replace
 	portrait = replaceColor(portrait, defaultSkinColor, skinColor)
 	portrait = replaceColor(portrait, defaultEyeColor, eyeColor)
+	portrait = replaceColor(portrait, defaultHairColor, hairColor)
 
 	return portrait
 }
