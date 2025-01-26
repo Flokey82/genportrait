@@ -27,6 +27,7 @@ Hair color: #fbf236
 ## TODO
 
 - [X] hair / hair color
+- [X] curly hair
 - [X] facial hair
 - [ ] lip color
 - [ ] eyebrow color

@@ -31,6 +31,9 @@ var beards_png []byte
 //go:embed sprites/hair_32_1x7.png
 var hair_png []byte
 
+//go:embed sprites/hair_curly_32_1x7.png
+var hair_curly_png []byte
+
 //go:embed sprites/mouths_32_1x4.png
 var mouths_png []byte
 
@@ -66,32 +69,38 @@ func LoadSprites() (*Generator, error) {
 	if err != nil {
 		return nil, err
 	}
+	hairCurly, err := newSpritesheet(hair_curly_png, tileSize)
+	if err != nil {
+		return nil, err
+	}
 	mouths, err := newSpritesheet(mouths_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Generator{
-		heads:    heads,
-		eyes:     eyes,
-		eyebrows: eyebrows,
-		ears:     ears,
-		noses:    noses,
-		beards:   beards,
-		hair:     hair,
-		mouths:   mouths,
+		heads:     heads,
+		eyes:      eyes,
+		eyebrows:  eyebrows,
+		ears:      ears,
+		beards:    beards,
+		noses:     noses,
+		hair:      hair,
+		hairCurly: hairCurly,
+		mouths:    mouths,
 	}, nil
 }
 
 type Generator struct {
-	heads    *spritesheet
-	eyes     *spritesheet
-	eyebrows *spritesheet
-	ears     *spritesheet
-	noses    *spritesheet
-	beards   *spritesheet
-	hair     *spritesheet
-	mouths   *spritesheet
+	heads     *spritesheet
+	eyes      *spritesheet
+	eyebrows  *spritesheet
+	ears      *spritesheet
+	beards    *spritesheet
+	noses     *spritesheet
+	hair      *spritesheet
+	hairCurly *spritesheet
+	mouths    *spritesheet
 }
 
 // SkinColors is a list of skin colors.
@@ -143,6 +152,15 @@ var HairColors = []color.RGBA{
 	{205, 92, 92, 255},   // Reddish
 	{165, 42, 42, 255},   // Brown
 	{255, 255, 0, 255},   // Yellow (Blonde)
+	{255, 215, 0, 255},   // Gold
+
+	// Gray, White, Silver
+	{128, 128, 128, 255}, // Gray
+	{192, 192, 192, 255}, // Silver
+	{211, 211, 211, 255}, // LightGray
+	{220, 220, 220, 255}, // Gainsboro
+	{245, 245, 245, 255}, // WhiteSmoke
+	{255, 250, 250, 255}, // Snow
 }
 
 // Random generates a random portrait.
@@ -159,11 +177,11 @@ func (g *Generator) Random() image.Image {
 	// Draw ears. (pick random ears)
 	earsIdx := rand.Intn(g.ears.numTiles())
 
-	// Draw nose. (pick random nose)
-	noseIdx := rand.Intn(g.noses.numTiles())
-
 	// Draw beard. (pick random beard)
 	beardIdx := rand.Intn(g.beards.numTiles())
+
+	// Draw nose. (pick random nose)
+	noseIdx := rand.Intn(g.noses.numTiles())
 
 	// Draw hair. (pick random hair)
 	hairIdx := rand.Intn(g.hair.numTiles())
@@ -180,14 +198,17 @@ func (g *Generator) Random() image.Image {
 	// Pick a random hair color
 	hairColor := HairColors[rand.Intn(len(HairColors))]
 
-	return g.Generate(eyeColor, skinColor, hairColor, headIdx, eyesIdx, eyebrowsIdx, earsIdx, noseIdx, beardIdx, hairIdx, mouthIdx)
+	// Pick if the hair should be curly
+	hairCurly := rand.Intn(2) == 1
+
+	return g.Generate(eyeColor, skinColor, hairColor, headIdx, eyesIdx, eyebrowsIdx, earsIdx, beardIdx, noseIdx, hairIdx, mouthIdx, hairCurly)
 }
 
 var defaultSkinColor = color.RGBA{0xee, 0xc3, 0x9a, 0xff}
 var defaultEyeColor = color.RGBA{0x8f, 0x56, 0x3b, 0xff}
 var defaultHairColor = color.RGBA{0xfb, 0xf2, 0x36, 0xff}
 
-func (g *Generator) Generate(eyeColor, skinColor, hairColor color.RGBA, headIndex, eyeIndex, eyebrowIndex, earIndex, noseIndex, beardIdx, hairIndex, mouthIndex int) image.Image {
+func (g *Generator) Generate(eyeColor, skinColor, hairColor color.RGBA, headIndex, eyeIndex, eyebrowIndex, earIndex, beardIdx, noseIndex, hairIndex, mouthIndex int, hairCurly bool) image.Image {
 	portrait := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	// Draw head.
 	headImg := g.heads.TileImage(headIndex)
@@ -205,17 +226,23 @@ func (g *Generator) Generate(eyeColor, skinColor, hairColor color.RGBA, headInde
 	earsImg := g.ears.TileImage(earIndex)
 	draw.Draw(portrait, portrait.Bounds(), earsImg, image.Point{0, 0}, draw.Over)
 
-	// Draw nose.
-	noseImg := g.noses.TileImage(noseIndex)
-	draw.Draw(portrait, portrait.Bounds(), noseImg, image.Point{0, 0}, draw.Over)
-
 	// Draw beard.
 	beardImg := g.beards.TileImage(beardIdx)
 	draw.Draw(portrait, portrait.Bounds(), beardImg, image.Point{0, 0}, draw.Over)
 
+	// Draw nose.
+	noseImg := g.noses.TileImage(noseIndex)
+	draw.Draw(portrait, portrait.Bounds(), noseImg, image.Point{0, 0}, draw.Over)
+
 	// Draw hair.
-	hairImg := g.hair.TileImage(hairIndex)
-	draw.Draw(portrait, portrait.Bounds(), hairImg, image.Point{0, 0}, draw.Over)
+	if hairCurly {
+		hairImg := g.hairCurly.TileImage(hairIndex)
+		draw.Draw(portrait, portrait.Bounds(), hairImg, image.Point{0, 0}, draw.Over)
+	} else {
+		hairImg := g.hair.TileImage(hairIndex)
+		draw.Draw(portrait, portrait.Bounds(), hairImg, image.Point{0, 0}, draw.Over)
+
+	}
 
 	// Draw mouth.
 	mouthImg := g.mouths.TileImage(mouthIndex)
