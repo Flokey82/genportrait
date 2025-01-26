@@ -1,13 +1,14 @@
 package genportrait
 
 import (
-	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
 	"math/rand"
 
 	_ "embed"
+
+	spritesheet "github.com/Flokey82/go_spritesheet"
 )
 
 //go:embed sprites/ears_32_1x3.png
@@ -41,39 +42,39 @@ func LoadSprites() (*Generator, error) {
 	const tileSize = 32
 
 	// Load sprites
-	ears, err := newSpritesheet(ears_png, tileSize)
+	ears, err := spritesheet.New(ears_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	eyes, err := newSpritesheet(eyes_png, tileSize)
+	eyes, err := spritesheet.New(eyes_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	eyebrows, err := newSpritesheet(eyebrows_png, tileSize)
+	eyebrows, err := spritesheet.New(eyebrows_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	heads, err := newSpritesheet(heads_png, tileSize)
+	heads, err := spritesheet.New(heads_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	noses, err := newSpritesheet(noses_png, tileSize)
+	noses, err := spritesheet.New(noses_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	beards, err := newSpritesheet(beards_png, tileSize)
+	beards, err := spritesheet.New(beards_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	hair, err := newSpritesheet(hair_png, tileSize)
+	hair, err := spritesheet.New(hair_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	hairCurly, err := newSpritesheet(hair_curly_png, tileSize)
+	hairCurly, err := spritesheet.New(hair_curly_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
-	mouths, err := newSpritesheet(mouths_png, tileSize)
+	mouths, err := spritesheet.New(mouths_png, tileSize)
 	if err != nil {
 		return nil, err
 	}
@@ -92,15 +93,15 @@ func LoadSprites() (*Generator, error) {
 }
 
 type Generator struct {
-	heads     *spritesheet
-	eyes      *spritesheet
-	eyebrows  *spritesheet
-	ears      *spritesheet
-	beards    *spritesheet
-	noses     *spritesheet
-	hair      *spritesheet
-	hairCurly *spritesheet
-	mouths    *spritesheet
+	heads     *spritesheet.Spritesheet
+	eyes      *spritesheet.Spritesheet
+	eyebrows  *spritesheet.Spritesheet
+	ears      *spritesheet.Spritesheet
+	beards    *spritesheet.Spritesheet
+	noses     *spritesheet.Spritesheet
+	hair      *spritesheet.Spritesheet
+	hairCurly *spritesheet.Spritesheet
+	mouths    *spritesheet.Spritesheet
 }
 
 // SkinColors is a list of skin colors.
@@ -166,28 +167,28 @@ var HairColors = []color.RGBA{
 // Random generates a random portrait.
 func (g *Generator) Random() image.Image {
 	// Draw head. (pick random head)
-	headIdx := rand.Intn(g.heads.numTiles())
+	headIdx := rand.Intn(g.heads.NumTiles())
 
 	// Draw eyes. (pick random eyes)
-	eyesIdx := rand.Intn(g.eyes.numTiles())
+	eyesIdx := rand.Intn(g.eyes.NumTiles())
 
 	// Draw eyebrows. (pick random eyebrows)
-	eyebrowsIdx := rand.Intn(g.eyebrows.numTiles())
+	eyebrowsIdx := rand.Intn(g.eyebrows.NumTiles())
 
 	// Draw ears. (pick random ears)
-	earsIdx := rand.Intn(g.ears.numTiles())
+	earsIdx := rand.Intn(g.ears.NumTiles())
 
 	// Draw beard. (pick random beard)
-	beardIdx := rand.Intn(g.beards.numTiles())
+	beardIdx := rand.Intn(g.beards.NumTiles())
 
 	// Draw nose. (pick random nose)
-	noseIdx := rand.Intn(g.noses.numTiles())
+	noseIdx := rand.Intn(g.noses.NumTiles())
 
 	// Draw hair. (pick random hair)
-	hairIdx := rand.Intn(g.hair.numTiles())
+	hairIdx := rand.Intn(g.hair.NumTiles())
 
 	// Draw mouth. (pick random mouth)
-	mouthIdx := rand.Intn(g.mouths.numTiles())
+	mouthIdx := rand.Intn(g.mouths.NumTiles())
 
 	// Pick a new skin color for the portrait.
 	skinColor := SkinColors[rand.Intn(len(SkinColors))]
@@ -249,91 +250,9 @@ func (g *Generator) Generate(eyeColor, skinColor, hairColor color.RGBA, headInde
 	draw.Draw(portrait, portrait.Bounds(), mouthImg, image.Point{0, 0}, draw.Over)
 
 	// Replace
-	portrait = replaceColor(portrait, defaultSkinColor, skinColor)
-	portrait = replaceColor(portrait, defaultEyeColor, eyeColor)
-	portrait = replaceColor(portrait, defaultHairColor, hairColor)
+	portrait = spritesheet.ReplaceColor(portrait, defaultSkinColor, skinColor)
+	portrait = spritesheet.ReplaceColor(portrait, defaultEyeColor, eyeColor)
+	portrait = spritesheet.ReplaceColor(portrait, defaultHairColor, hairColor)
 
 	return portrait
-}
-
-func replaceColor(img image.Image, from, to color.Color) *image.RGBA {
-	bounds := img.Bounds()
-	newImg := image.NewRGBA(bounds)
-	draw.Draw(newImg, bounds, img, bounds.Min, draw.Src)
-
-	for x := 0; x < bounds.Dx(); x++ {
-		for y := 0; y < bounds.Dy(); y++ {
-			if img.At(x, y) == from {
-				newImg.Set(x, y, to)
-			}
-		}
-	}
-
-	return newImg
-}
-
-// spritesheet is a convenience wrapper around locating sprites in a spritesheet.
-type spritesheet struct {
-	image    image.Image
-	tileSize int // Size of each tile in the spritesheet
-	xCount   int // Number of tiles in the x direction
-	yCount   int // Number of tiles in the y direction
-	x        int // Width of the spritesheet
-	y        int // Height of the spritesheet
-}
-
-func newSpritesheet(imgData []byte, tileSize int) (*spritesheet, error) {
-	// Decode an image from the image file's byte slice.
-	// Now the byte slice is generated with //go:generate for Go 1.15 or older.
-	// If you use Go 1.16 or newer, it is strongly recommended to use //go:embed to embed the image file.
-	// See https://pkg.go.dev/embed for more details.
-	img, _, err := image.Decode(bytes.NewReader(imgData))
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the size of the image
-	bounds := img.Bounds()
-	x := bounds.Dx()
-	y := bounds.Dy()
-
-	// Calculate the number of tiles in the x and y directions
-	xCount := x / tileSize
-	yCount := y / tileSize
-
-	return &spritesheet{
-		image:    img,
-		tileSize: tileSize,
-		xCount:   xCount,
-		yCount:   yCount,
-		x:        x,
-		y:        y,
-	}, nil
-}
-
-// numTiles returns the number of tiles in the spritesheet.
-func (s *spritesheet) numTiles() int {
-	return s.xCount * s.yCount
-}
-
-// TileImage returns an image.Image of the tile at the given index.
-// TODO: This should maybe take an image (and maybe offset) to draw on
-// instead of returning a new image. Also the color replacement could be
-// done here.
-func (s *spritesheet) TileImage(index int) image.Image {
-	// Calculate the x and y position of the tile in the spritesheet
-	x := (index % s.xCount) * s.tileSize
-	y := (index / s.xCount) * s.tileSize
-
-	// Create a new RGBA image for the tile
-	tile := image.NewRGBA(image.Rect(0, 0, s.tileSize, s.tileSize))
-
-	// Copy the tile from the spritesheet to the new image
-	for i := 0; i < s.tileSize; i++ {
-		for j := 0; j < s.tileSize; j++ {
-			tile.Set(i, j, s.image.At(x+i, y+j))
-		}
-	}
-
-	return tile
 }
